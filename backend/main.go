@@ -1,4 +1,3 @@
-// main.go
 package main
 
 import (
@@ -15,5 +14,5 @@ func main() {
 	// Get original URL
 	router.GET("/:key", handlers.GetOriginalURL)
 
-	router.Run(":300")
+	router.Run(":3000")
 }

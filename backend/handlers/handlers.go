@@ -53,11 +53,11 @@ func GetOriginalURL(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "URL not found"})
 		return
 	}
-	c.Redirect(http.StatusOK, longURL)
+	c.Redirect(http.StatusFound, longURL)
 }
 
 func generateKey(i int) string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXY0123456789"
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	key := make([]byte, i)
 	for v := range key {
 		key[v] = letters[v%len(letters)]
