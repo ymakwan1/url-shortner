@@ -46,6 +46,16 @@ func CreateShortURL(c *gin.Context) {
 
 }
 
+func GetOriginalURL(c *gin.Context) {
+	key := c.Param("key")
+	longURL, ok := ShortURLs[key]
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "URL not found"})
+		return
+	}
+	c.Redirect(http.StatusOK, longURL)
+}
+
 func generateKey(i int) string {
 	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXY0123456789"
 	key := make([]byte, i)

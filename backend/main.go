@@ -1,24 +1,19 @@
+// main.go
 package main
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"github.com/ymakwan1/url-shortener/backend/handlers"
 )
 
 func main() {
-	// Initialize Gin router
-	r := gin.Default()
+	router := gin.Default()
 
-	// Define routes
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Welcome to URL Shortener API",
-		})
-	})
+	// Create short URL
+	router.POST("/", handlers.CreateShortURL)
 
-	// Start the server
-	if err := r.Run(":8080"); err != nil {
-		panic(err)
-	}
+	// Get original URL
+	router.GET("/:key", handlers.GetOriginalURL)
+
+	router.Run(":300")
 }
