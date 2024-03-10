@@ -1,65 +1,68 @@
 package handlers
 
 import (
+	"database/sql"
+	"encoding/json"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/ymakwan1/url-shortener/backend/jsonhandling"
 	"github.com/ymakwan1/url-shortener/backend/validator"
 )
 
 type ShortURL struct {
 	Key      string `json:"key"`
-	LongURLs string `json:"long_url"`
+	LongURL  string `json:"long_url"`
 	ShortURL string `json:"short_url"`
 }
 
 var ShortURLs = make(map[string]string)
 
-func CreateShortURL(c *gin.Context) {
-	var req struct {
-		URL string `json:"url" binding:"required"`
+func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	if r.Method != http.MethodPost {
+		jsonhandling.Error(w, http.StatusMethodNotAllowed, "Method Not Allowed")
+		return
 	}
 
-	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req struct {
+		URL string `json:"url"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonhandling.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if !validator.IsValidURL(req.URL) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL"})
-		return
+		jsonhandling.Error(w, http.StatusBadRequest, "Invalid URL")
 	}
 
-	for key, longUrl := range ShortURLs {
-		if longUrl == req.URL {
-			c.JSON(http.StatusOK, ShortURL{
+	for key, longURL := range ShortURLs {
+		if longURL == req.URL {
+			resp := ShortURL{
 				Key:      key,
-				LongURLs: longUrl,
+				LongURL:  longURL,
 				ShortURL: "http://localhost/" + key,
-			})
+			}
+			jsonhandling.Response(w, http.StatusOK, resp)
 			return
 		}
 	}
 
 	key := generateKey(len(ShortURLs) + 1)
 	ShortURLs[key] = req.URL
-
-	c.JSON(http.StatusCreated, ShortURL{
+	resp := ShortURL{
 		Key:      key,
-		LongURLs: req.URL,
+		LongURL:  req.URL,
 		ShortURL: "http://localhost/" + key,
-	})
-
+	}
+	jsonhandling.Response(w, http.StatusCreated, resp)
 }
 
-func GetOriginalURL(c *gin.Context) {
-	key := c.Param("key")
-	longURL, ok := ShortURLs[key]
-	if !ok {
-		c.JSON(http.StatusNotFound, gin.H{"error": "URL not found"})
+func GetOriginalURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	c.Redirect(http.StatusFound, longURL)
 }
 
 func generateKey(i int) string {

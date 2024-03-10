@@ -1,19 +1,29 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"net/http"
+
 	_ "github.com/lib/pq"
+	"github.com/ymakwan1/url-shortener/backend/database"
 	"github.com/ymakwan1/url-shortener/backend/handlers"
 )
 
 func main() {
-	router := gin.Default()
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			handlers.CreateShortURL(w, r, database.DB)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
-	// Create short URL
-	router.POST("/", handlers.CreateShortURL)
-
-	// Get original URL
-	router.GET("/:key", handlers.GetOriginalURL)
-
-	router.Run(":3000")
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetOriginalURL(w, r, database.DB)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 }
