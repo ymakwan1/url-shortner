@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ymakwan1/url-shortener/backend/validator"
 )
 
 type ShortURL struct {
@@ -16,11 +17,16 @@ var ShortURLs = make(map[string]string)
 
 func CreateShortURL(c *gin.Context) {
 	var req struct {
-		URL string `json: "url" binding: "required"`
+		URL string `json:"url" binding:"required"`
 	}
 
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !validator.IsValidURL(req.URL) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL"})
 		return
 	}
 
