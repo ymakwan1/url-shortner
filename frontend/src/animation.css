@@ -11,8 +11,8 @@
   }
   
   .animate-gradient {
-    animation: gradient 15s linear infinite; /* Increase duration for slower animation */
-    background: linear-gradient(45deg, #44484f, #26292f, #121214, #0d0d0f); /* Darker gradient colors */
-    background-size: 400% 400%; /* Increase size for smoother animation */
+    animation: gradient 15s linear infinite; 
+    background: linear-gradient(45deg, #44484f, #26292f, #121214, #0d0d0f); 
+    background-size: 400% 400%;
   }
   
