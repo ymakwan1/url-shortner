@@ -12,6 +12,7 @@ const UrlShortener: React.FC = () => {
   const handleShortenUrl = async () => {
     if (!originalUrl) {
       setError('Please enter a URL to shorten.');
+      resetError();
       return;
     }
 
@@ -19,9 +20,6 @@ const UrlShortener: React.FC = () => {
     setError('');
 
     try {
-      /**
-       * @todo Make request to backend
-       */
       const response = await fetch('', {
         method: 'POST',
         headers: {
@@ -33,26 +31,35 @@ const UrlShortener: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         setShortenedUrl(data.shortenedUrl);
-        setUrlsShortened(urlsShortened + 1);
+        setUrlsShortened(urlsShortened + 1); 
       } else {
         console.error('Failed to shorten URL');
         setError('Failed to shorten URL. Please try again.');
+        resetError();
       }
     } catch (error) {
       console.error('Error occurred while shortening URL:', error);
       setError('An error occurred while shortening the URL. Please try again.');
+      resetError();
     }
 
     setIsLoading(false);
   };
 
   const handleCopyUrl = () => {
+    // Copy the shortened URL to clipboard
     navigator.clipboard.writeText(shortenedUrl);
     alert('Shortened URL copied to clipboard!');
   };
 
   const trackUniqueIPs = () => {
     setUniqueIPs(uniqueIPs + 1);
+  };
+
+  const resetError = () => {
+    setTimeout(() => {
+      setError('');
+    }, 5000); 
   };
 
   return (
@@ -64,7 +71,7 @@ const UrlShortener: React.FC = () => {
           placeholder="Enter URL to shorten"
           value={originalUrl}
           onChange={(e) => setOriginalUrl(e.target.value)}
-          className="flex-grow border rounded-md px-16 py-3 mr-2 w-full max-w-lg text-lg"
+          className="flex-grow border rounded-md px-4 py-3 mr-2 w-full max-w-lg text-lg"
         />
         <button
           onClick={() => { handleShortenUrl(); trackUniqueIPs(); }}
@@ -91,7 +98,7 @@ const UrlShortener: React.FC = () => {
           </button>
         </div>
       )}
-      <div className="text-white">
+      <div className="fixed bottom-0 left-0 right-0 p-6 animate-gradient text-white text-center">
         <p>Unique IPs served: {uniqueIPs}</p>
         <p>Number of URLs shortened: {urlsShortened}</p>
       </div>
