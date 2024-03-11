@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"crypto/md5"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 
@@ -36,25 +38,36 @@ func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		jsonhandling.Error(w, http.StatusBadRequest, "Invalid URL")
 	}
 
-	for key, longURL := range ShortURLs {
-		if longURL == req.URL {
-			resp := ShortURL{
-				Key:      key,
-				LongURL:  longURL,
-				ShortURL: "http://localhost/" + key,
-			}
-			jsonhandling.Response(w, http.StatusOK, resp)
-			return
+	var existingKey string
+	err := db.QueryRow("SELECT key FROM shortend_urls where long_url = $1", req.URL).Scan(&existingKey)
+
+	if err == nil {
+		resp := ShortURL{
+			Key:      existingKey,
+			LongURL:  req.URL,
+			ShortURL: "http://localhost/" + existingKey,
 		}
+		jsonhandling.Response(w, http.StatusOK, resp)
+		return
+	} else if err != sql.ErrNoRows {
+		jsonhandling.Error(w, http.StatusInternalServerError, "Failed to check existing URL")
+		return
 	}
 
-	key := generateKey(len(ShortURLs) + 1)
-	ShortURLs[key] = req.URL
-	resp := ShortURL{
-		Key:      key,
-		LongURL:  req.URL,
-		ShortURL: "http://localhost/" + key,
+	key := generateKey(req.URL)
+
+	_, err = db.Exec("INSERT INTO shortened_urls (key, long_url) VALUES ($1, $2)", key, req.URL)
+	if err != nil {
+		jsonhandling.Error(w, http.StatusInternalServerError, "Failed to create shortened URL")
+		return
 	}
+
+	resp := ShortURL{
+		Key:      existingKey,
+		LongURL:  req.URL,
+		ShortURL: "http://localhost/" + existingKey,
+	}
+
 	jsonhandling.Response(w, http.StatusCreated, resp)
 }
 
@@ -63,13 +76,23 @@ func GetOriginalURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	key := r.URL.Path[1:]
+
+	var originalURL string
+	err := db.QueryRow("SELECT long_url FROM shortend_urls where key = $1", key).Scan(&originalURL)
+
+	if err != nil {
+		jsonhandling.Error(w, http.StatusNotFound, "URL not found")
+		return
+	}
+
+	http.Redirect(w, r, originalURL, http.StatusFound)
 }
 
-func generateKey(i int) string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	key := make([]byte, i)
-	for v := range key {
-		key[v] = letters[v%len(letters)]
-	}
-	return string(key)
+func generateKey(url string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(url))
+	hash := hex.EncodeToString(hasher.Sum(nil))
+	return hash[:6]
 }

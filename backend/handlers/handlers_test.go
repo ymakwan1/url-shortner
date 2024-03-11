@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/ymakwan1/url-shortener/backend/handlers"
 )
 
 func TestCreateShortURL(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := gin.Default()
-	router.POST("/shorten", handlers.CreateShortURL)
+	router := http.NewServeMux()
+	router.HandleFunc("/shorten", func(w http.ResponseWriter, r *http.Request) {
+		handlers.CreateShortURL(w, r)
+	})
 
 	t.Run("CreateShortURL", func(t *testing.T) {
 		reqBody := `{"url":"http://example.com"}`
@@ -32,7 +32,7 @@ func TestCreateShortURL(t *testing.T) {
 		}
 
 		var respBody handlers.ShortURL
-		if err := json.Unmarshal(w.Body.Bytes(), &respBody); err != nil {
+		if err := json.NewDecoder(w.Body).Decode(&respBody); err != nil {
 			t.Fatal(err)
 		}
 
@@ -42,11 +42,12 @@ func TestCreateShortURL(t *testing.T) {
 	})
 
 	t.Run("InvalidURL", func(t *testing.T) {
-		reqBody := `{"url":"invalid-url"}`
+		reqBody := `{"url":"example"}`
 		req, err := http.NewRequest("POST", "/shorten", strings.NewReader(reqBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		req.Header.Set("Content-Type", "application/json")
 
 		w := httptest.NewRecorder()
@@ -102,15 +103,29 @@ func TestCreateShortURL(t *testing.T) {
 			t.Errorf("Expected short URL %s, got %s", "http://localhost/existingKey", respBody.ShortURL)
 		}
 	})
+
+	t.Run("MethodNotAllowed", func(t *testing.T) {
+		req, err := http.NewRequest("POST", "/shorten", nil) // Using POST method
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusMethodNotAllowed {
+			t.Errorf("Expected status code %d, got %d", http.StatusMethodNotAllowed, w.Code)
+		}
+	})
 }
 
 func TestGetOriginalURL(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := gin.Default()
-	router.GET("/:key", handlers.GetOriginalURL)
+	router := http.NewServeMux()
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetOriginalURL(w, r)
+	})
 
 	t.Run("GetOriginalURL", func(t *testing.T) {
-
 		handlers.ShortURLs["exampleKey"] = "http://example.com"
 
 		req, err := http.NewRequest("GET", "/exampleKey", nil)
@@ -126,8 +141,8 @@ func TestGetOriginalURL(t *testing.T) {
 		}
 	})
 
-	t.Run("GetFailure", func(t *testing.T) {
-		req, err := http.NewRequest("GET", "/nonexistentkey", nil)
+	t.Run("MethodNotAllowed", func(t *testing.T) {
+		req, err := http.NewRequest("POST", "/exampleKey", nil) // Using POST method
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -135,8 +150,8 @@ func TestGetOriginalURL(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		if w.Code != http.StatusNotFound {
-			t.Errorf("Expected status code %d, got %d", http.StatusNotFound, w.Code)
+		if w.Code != http.StatusMethodNotAllowed {
+			t.Errorf("Expected status code %d, got %d", http.StatusMethodNotAllowed, w.Code)
 		}
 	})
 }
