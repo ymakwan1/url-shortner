@@ -6,8 +6,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"github.com/ymakwan1/url-shortener/backend/jsonhandling"
+	lrucache "github.com/ymakwan1/url-shortener/backend/lru_cache"
 	"github.com/ymakwan1/url-shortener/backend/validator"
 )
 
@@ -17,7 +19,7 @@ type ShortURL struct {
 	ShortURL string `json:"short_url"`
 }
 
-var ShortURLs = make(map[string]string)
+var cacheMutex sync.Mutex
 
 func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	if r.Method != http.MethodPost {
@@ -36,51 +38,51 @@ func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	if !validator.IsValidURL(req.URL) {
 		jsonhandling.Error(w, http.StatusBadRequest, "Invalid URL")
-	}
-
-	var existingKey string
-	err := db.QueryRow("SELECT key FROM shortend_urls where long_url = $1", req.URL).Scan(&existingKey)
-
-	if err == nil {
-		resp := ShortURL{
-			Key:      existingKey,
-			LongURL:  req.URL,
-			ShortURL: "http://localhost/" + existingKey,
-		}
-		jsonhandling.Response(w, http.StatusOK, resp)
-		return
-	} else if err != sql.ErrNoRows {
-		jsonhandling.Error(w, http.StatusInternalServerError, "Failed to check existing URL")
 		return
 	}
 
+	// Generate new key
 	key := generateKey(req.URL)
 
-	_, err = db.Exec("INSERT INTO shortened_urls (key, long_url) VALUES ($1, $2)", key, req.URL)
+	// Insert the URL into the database
+	_, err := db.Exec("INSERT INTO shortened_urls (key, long_url) VALUES ($1, $2)", key, req.URL)
 	if err != nil {
 		jsonhandling.Error(w, http.StatusInternalServerError, "Failed to create shortened URL")
 		return
 	}
 
+	cacheMutex.Lock()
+	lrucache.LruCache.Set(key, req.URL)
+	cacheMutex.Unlock()
+
 	resp := ShortURL{
-		Key:      existingKey,
+		Key:      key,
 		LongURL:  req.URL,
-		ShortURL: "http://localhost/" + existingKey,
+		ShortURL: "http://localhost/" + key,
 	}
 
 	jsonhandling.Response(w, http.StatusCreated, resp)
 }
 
 func GetOriginalURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodGet {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	key := r.URL.Path[1:]
 
+	cacheMutex.Lock()
+	longURL, ok := lrucache.LruCache.Get(key)
+	cacheMutex.Unlock()
+
+	if ok {
+		http.Redirect(w, r, longURL, http.StatusFound)
+		return
+	}
+
 	var originalURL string
-	err := db.QueryRow("SELECT long_url FROM shortend_urls where key = $1", key).Scan(&originalURL)
+	err := db.QueryRow("SELECT long_url FROM shortened_urls where key = $1", key).Scan(&originalURL)
 
 	if err != nil {
 		jsonhandling.Error(w, http.StatusNotFound, "URL not found")
