@@ -6,10 +6,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
-	"sync"
+	"time"
 
 	"github.com/ymakwan1/url-shortener/backend/jsonhandling"
-	lrucache "github.com/ymakwan1/url-shortener/backend/lru_cache"
+	"github.com/ymakwan1/url-shortener/backend/redis_cache"
 	"github.com/ymakwan1/url-shortener/backend/validator"
 )
 
@@ -18,8 +18,6 @@ type ShortURL struct {
 	LongURL  string `json:"long_url"`
 	ShortURL string `json:"short_url"`
 }
-
-var cacheMutex sync.Mutex
 
 func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	if r.Method != http.MethodPost {
@@ -51,9 +49,10 @@ func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 
-	cacheMutex.Lock()
-	lrucache.LruCache.Set(key, req.URL)
-	cacheMutex.Unlock()
+	if err := redis_cache.Set(key, req.URL, time.Hour); err != nil {
+		jsonhandling.Error(w, http.StatusInternalServerError, "Failed to cache data in Redis")
+		return
+	}
 
 	resp := ShortURL{
 		Key:      key,
@@ -72,11 +71,9 @@ func GetOriginalURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	key := r.URL.Path[1:]
 
-	cacheMutex.Lock()
-	longURL, ok := lrucache.LruCache.Get(key)
-	cacheMutex.Unlock()
+	longURL, ok := redis_cache.Get(key)
 
-	if ok {
+	if ok != nil {
 		http.Redirect(w, r, longURL, http.StatusFound)
 		return
 	}
