@@ -4,9 +4,9 @@ import './animation.css';
 
 const App: React.FC = () => {
   return (
-    <div className="bg-gray-900 min-h-screen flex justify-center items-center animate-gradient">
+    //<div className="bg-gray-900 min-h-screen flex justify-center items-center animate-gradient">
       <UrlShortener />
-    </div>
+   // </div>
   );
 };
 

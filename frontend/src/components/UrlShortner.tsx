@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import '../animation.css';
 
 const UrlShortener: React.FC = () => {
   const [originalUrl, setOriginalUrl] = useState('');
@@ -63,44 +62,46 @@ const UrlShortener: React.FC = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto p-6 animate-gradient rounded-md shadow-md">
-      <h1 className="text-3xl font-semibold mb-4 text-white">URL Shortener</h1>
-      <div className="flex items-center mb-4">
-        <input
-          type="text"
-          placeholder="Enter URL to shorten"
-          value={originalUrl}
-          onChange={(e) => setOriginalUrl(e.target.value)}
-          className="flex-grow border rounded-md px-4 py-3 mr-2 w-full max-w-lg text-lg"
-        />
-        <button
-          onClick={() => { handleShortenUrl(); trackUniqueIPs(); }}
-          disabled={isLoading}
-          className="bg-blue-500 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-600"
-        >
-          {isLoading ? 'Shortening...' : 'Shorten'}
-        </button>
-      </div>
-      {error && <p className="text-red-500">{error}</p>}
-      {shortenedUrl && (
+    <div className="bg-gray-900 min-h-screen flex justify-center animate-gradient  items-center">
+      <div className="max-w-lg mx-auto p-6 rounded-md shadow-md">
+        <h1 className="text-3xl font-semibold mb-4 text-white">URL Shortener</h1>
         <div className="flex items-center mb-4">
           <input
             type="text"
-            value={shortenedUrl}
-            readOnly
-            className="flex-grow border rounded-md px-4 py-3 mr-2 w-full max-w-lg text-lg"
+            placeholder="Enter URL to shorten"
+            value={originalUrl}
+            onChange={(e) => setOriginalUrl(e.target.value)}
+            className="flex-grow border rounded-md px-4 py-4 mr-2 w-full max-w-lg text-lg"
           />
           <button
-            onClick={handleCopyUrl}
+            onClick={() => { handleShortenUrl(); trackUniqueIPs(); }}
+            disabled={isLoading}
             className="bg-blue-500 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-600"
           >
-            Copy
+            {isLoading ? 'Shortening...' : 'Shorten'}
           </button>
         </div>
-      )}
-      <div className="fixed bottom-0 left-0 right-0 p-6 animate-gradient text-white text-center">
-        <p>Unique IPs served: {uniqueIPs}</p>
-        <p>Number of URLs shortened: {urlsShortened}</p>
+        {error && <p className="text-red-500">{error}</p>}
+        {shortenedUrl && (
+          <div className="flex items-center mb-4">
+            <input
+              type="text"
+              value={shortenedUrl}
+              readOnly
+              className="flex-grow border rounded-md px-4 py-3 mr-2 w-full max-w-lg text-lg"
+            />
+            <button
+              onClick={handleCopyUrl}
+              className="bg-blue-500 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-600"
+            >
+              Copy
+            </button>
+          </div>
+        )}
+        <div className="fixed bottom-0 left-0 right-0 p-6 text-white text-center">
+          <p>Unique IPs served: {uniqueIPs}</p>
+          <p>Number of URLs shortened: {urlsShortened}</p>
+        </div>
       </div>
     </div>
   );
