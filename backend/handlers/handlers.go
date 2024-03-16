@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
@@ -90,7 +90,7 @@ func GetOriginalURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 }
 
 func generateKey(url string) string {
-	hasher := md5.New()
+	hasher := sha256.New()
 	hasher.Write([]byte(url))
 	hash := hex.EncodeToString(hasher.Sum(nil))
 	return hash[:6]
