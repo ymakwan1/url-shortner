@@ -73,7 +73,7 @@ func GetOriginalURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	longURL, ok := redis_cache.Get(key)
 
-	if ok != nil {
+	if ok == nil {
 		http.Redirect(w, r, longURL, http.StatusFound)
 		return
 	}
