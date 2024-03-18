@@ -13,7 +13,8 @@ import (
 
 func main() {
 
-	logger := log.New(os.Stdout, "INFO: ", log.LstdFlags)
+	logger := log.New(os.Stdout, "INFO: ", log.LstdFlags|log.Llongfile)
+	loggerError := log.New(os.Stdout, "ERROR: ", log.LstdFlags|log.Llongfile)
 	logger.Print("Started")
 	tokenBucket := middleware.NewTokenBucket(10, time.Minute)
 
@@ -39,17 +40,18 @@ func main() {
 			logger.Print("POST")
 			handlers.CreateShortURL(w, r, database.DB)
 		case http.MethodGet:
+			logger.Print("GET")
 			handlers.GetOriginalURL(w, r, database.DB)
 		default:
+			loggerError.Printf("Method not allowed (%d)", http.StatusMethodNotAllowed)
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	}))))
 
 	// Start the HTTP server
 	err := http.ListenAndServe(":3000", nil)
-	logger.Print("Started")
 	if err != nil {
-		logger.Fatalf("Error starting server: %v", err)
+		loggerError.Printf("Error starting server: %v", err)
 	} else {
 		logger.Print("Server started")
 	}

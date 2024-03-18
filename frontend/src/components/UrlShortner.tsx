@@ -19,7 +19,7 @@ const UrlShortener: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3000/shorten', {
+      const response = await fetch('http://localhost:3000/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
