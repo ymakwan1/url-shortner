@@ -57,7 +57,7 @@ func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	resp := ShortURL{
 		Key:      key,
 		LongURL:  req.URL,
-		ShortURL: "http://localhost/" + key,
+		ShortURL: "http://localhost:3000/" + key,
 	}
 
 	jsonhandling.Response(w, http.StatusCreated, resp)

@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 
 const UrlShortener: React.FC = () => {
-  const [originalUrl, setOriginalUrl] = useState('');
+  const [url, setUrl] = useState('');
   const [shortenedUrl, setShortenedUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [uniqueIPs, setUniqueIPs] = useState(0);
-  const [urlsShortened, setUrlsShortened] = useState(0);
+  const [showCopyButton, setShowCopyButton] = useState(true);
+  const [showCopyNotification, setShowCopyNotification] = useState(false);
 
   const handleShortenUrl = async () => {
-    if (!originalUrl) {
+    if (!url) {
       setError('Please enter a URL to shorten.');
       resetError();
       return;
@@ -19,19 +19,28 @@ const UrlShortener: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch('', {
+      const response = await fetch('http://localhost:3000/shorten', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ originalUrl }),
+        body: JSON.stringify({ url }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setShortenedUrl(data.shortenedUrl);
-        setUrlsShortened(urlsShortened + 1); 
+        setShortenedUrl(data.short_url);
+        setIsLoading(false);
+        setShowCopyButton(true);
+
+        // Hide copy button and shortened URL field after 20 seconds
+        setTimeout(() => {
+          setShortenedUrl('');
+          setShowCopyButton(false);
+        }, 20000);
       } else {
+        setUrl('');
+        setIsLoading(false);
         console.error('Failed to shorten URL');
         setError('Failed to shorten URL. Please try again.');
         resetError();
@@ -41,40 +50,42 @@ const UrlShortener: React.FC = () => {
       setError('An error occurred while shortening the URL. Please try again.');
       resetError();
     }
-
-    setIsLoading(false);
   };
 
   const handleCopyUrl = () => {
-    // Copy the shortened URL to clipboard
+    
     navigator.clipboard.writeText(shortenedUrl);
-    alert('Shortened URL copied to clipboard!');
-  };
-
-  const trackUniqueIPs = () => {
-    setUniqueIPs(uniqueIPs + 1);
+    setShowCopyNotification(true);
+    
+    
+    setTimeout(() => {
+      setUrl('');
+      setShortenedUrl('');
+      setShowCopyButton(false);
+      setShowCopyNotification(false);
+    }, 5000); 
   };
 
   const resetError = () => {
     setTimeout(() => {
       setError('');
-    }, 5000); 
+    }, 5000);
   };
 
   return (
-    <div className="bg-gray-900 min-h-screen flex justify-center animate-gradient  items-center">
-      <div className="max-w-lg mx-auto p-6 rounded-md shadow-md">
+    <div className="bg-gray-900 min-h-screen flex animate-gradient justify-center items-center">
+      <div className="max-w-lg mx-auto p-6 animate-gradient rounded-md shadow-md">
         <h1 className="text-3xl font-semibold mb-4 text-white">URL Shortener</h1>
         <div className="flex items-center mb-4">
           <input
             type="text"
             placeholder="Enter URL to shorten"
-            value={originalUrl}
-            onChange={(e) => setOriginalUrl(e.target.value)}
-            className="flex-grow border rounded-md px-4 py-4 mr-2 w-full max-w-lg text-lg"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            className="flex-grow border rounded-md px-4 py-3 mr-2 w-full max-w-lg text-lg"
           />
           <button
-            onClick={() => { handleShortenUrl(); trackUniqueIPs(); }}
+            onClick={handleShortenUrl}
             disabled={isLoading}
             className="bg-blue-500 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-600"
           >
@@ -90,18 +101,21 @@ const UrlShortener: React.FC = () => {
               readOnly
               className="flex-grow border rounded-md px-4 py-3 mr-2 w-full max-w-lg text-lg"
             />
-            <button
-              onClick={handleCopyUrl}
-              className="bg-blue-500 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-600"
-            >
-              Copy
-            </button>
+            {showCopyButton && (
+              <button
+                onClick={handleCopyUrl}
+                className="bg-blue-500 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-600"
+              >
+                Copy
+              </button>
+            )}
           </div>
         )}
-        <div className="fixed bottom-0 left-0 right-0 p-6 text-white text-center">
-          <p>Unique IPs served: {uniqueIPs}</p>
-          <p>Number of URLs shortened: {urlsShortened}</p>
-        </div>
+        {showCopyNotification && (
+          <div className="bg-green-500 text-white px-4 py-2 rounded-md">
+            URL copied to clipboard!
+          </div>
+        )}
       </div>
     </div>
   );
