@@ -4,15 +4,16 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 var DB *sql.DB
-var logger = log.New(os.Stdout, "INFO: ", log.LstdFlags)
-var loggerError = log.New(os.Stdout, "ERROR: ", log.LstdFlags)
-var tableCreated bool // Flag to track if table creation has been attempted
+var logger = log.New(os.Stdout, "INFO: ", log.LstdFlags|log.Llongfile)
+var loggerError = log.New(os.Stdout, "ERROR: ", log.LstdFlags|log.Llongfile)
+var tableCreated bool = true
 
 func init() {
 	err := godotenv.Load()
@@ -26,10 +27,21 @@ func init() {
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 
-	connectionString := "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=disable"
-	DB, err = sql.Open("postgres", connectionString)
-	if err != nil {
-		loggerError.Print("Error connecting to database:", err)
+	connectionString := "postgresql://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=disable"
+
+	for i := 0; i < 5; i++ {
+		DB, err = sql.Open("postgres", connectionString)
+		if err != nil {
+			loggerError.Printf("Error connecting to database (attempt %d): %v", i+1, err)
+			time.Sleep(5 * time.Second)
+		} else {
+			logger.Printf("Connected to database successfully")
+			break
+		}
+	}
+
+	if DB == nil {
+		loggerError.Fatal("Failed to connect to database after multiple attempts")
 	}
 
 	createTable()

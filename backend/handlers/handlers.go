@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/ymakwan1/url-shortener/backend/jsonhandling"
@@ -19,8 +21,12 @@ type ShortURL struct {
 	ShortURL string `json:"short_url"`
 }
 
+var logger = log.New(os.Stdout, "INFO: ", log.LstdFlags|log.Llongfile)
+var loggerError = log.New(os.Stdout, "ERROR: ", log.LstdFlags|log.Llongfile)
+
 func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	if r.Method != http.MethodPost {
+		loggerError.Print("Method Not Allowed")
 		jsonhandling.Error(w, http.StatusMethodNotAllowed, "Method Not Allowed")
 		return
 	}
@@ -30,11 +36,13 @@ func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		loggerError.Print(err)
 		jsonhandling.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if !validator.IsValidURL(req.URL) {
+		loggerError.Printf("Invalid URL")
 		jsonhandling.Error(w, http.StatusBadRequest, "Invalid URL")
 		return
 	}
@@ -45,11 +53,13 @@ func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Insert the URL into the database
 	_, err := db.Exec("INSERT INTO shortened_urls (key, long_url) VALUES ($1, $2)", key, req.URL)
 	if err != nil {
+		loggerError.Print(err)
 		jsonhandling.Error(w, http.StatusInternalServerError, "Failed to create shortened URL")
 		return
 	}
 
 	if err := redis_cache.Set(key, req.URL, time.Hour); err != nil {
+		loggerError.Print(err)
 		jsonhandling.Error(w, http.StatusInternalServerError, "Failed to cache data in Redis")
 		return
 	}
@@ -59,8 +69,9 @@ func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		LongURL:  req.URL,
 		ShortURL: "http://localhost:3000/" + key,
 	}
-
+	logger.Printf(resp.ShortURL)
 	jsonhandling.Response(w, http.StatusCreated, resp)
+
 }
 
 func GetOriginalURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {

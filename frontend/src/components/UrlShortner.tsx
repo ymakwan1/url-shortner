@@ -19,7 +19,7 @@ const UrlShortener: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3000/', {
+      const response = await fetch('http://127.0.0.1:3000/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,6 +29,7 @@ const UrlShortener: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log(data);
         setShortenedUrl(data.short_url);
         setIsLoading(false);
         setShowCopyButton(true);
