@@ -7,6 +7,7 @@ const UrlShortener: React.FC = () => {
   const [error, setError] = useState('');
   const [showCopyButton, setShowCopyButton] = useState(true);
   const [showCopyNotification, setShowCopyNotification] = useState(false);
+  const [copyButtonDisabled, setCopyButtonDisabled] = useState(false);
 
   const handleShortenUrl = async () => {
     if (!url) {
@@ -29,7 +30,6 @@ const UrlShortener: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log(data);
         setShortenedUrl(data.short_url);
         setIsLoading(false);
         setShowCopyButton(true);
@@ -54,17 +54,19 @@ const UrlShortener: React.FC = () => {
   };
 
   const handleCopyUrl = () => {
-    
     navigator.clipboard.writeText(shortenedUrl);
     setShowCopyNotification(true);
-    
-    
+    setCopyButtonDisabled(true);
+
+    // setTimeout(() => {
+    //   setShowCopyNotification(false);
+    // }, 2000);
+
     setTimeout(() => {
-      setUrl('');
-      setShortenedUrl('');
-      setShowCopyButton(false);
       setShowCopyNotification(false);
-    }, 5000); 
+      setCopyButtonDisabled(false);
+      setUrl('');    
+    }, 5000);
   };
 
   const resetError = () => {
@@ -101,10 +103,12 @@ const UrlShortener: React.FC = () => {
               value={shortenedUrl}
               readOnly
               className="flex-grow border rounded-md px-4 py-3 mr-2 w-full max-w-lg text-lg"
+              disabled={copyButtonDisabled}
             />
             {showCopyButton && (
               <button
                 onClick={handleCopyUrl}
+                disabled={copyButtonDisabled}
                 className="bg-blue-500 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-600"
               >
                 Copy

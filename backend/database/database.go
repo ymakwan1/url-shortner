@@ -13,7 +13,7 @@ import (
 var DB *sql.DB
 var logger = log.New(os.Stdout, "INFO: ", log.LstdFlags|log.Llongfile)
 var loggerError = log.New(os.Stdout, "ERROR: ", log.LstdFlags|log.Llongfile)
-var tableCreated bool = true
+var tableCreated bool = false
 
 func init() {
 	err := godotenv.Load()
