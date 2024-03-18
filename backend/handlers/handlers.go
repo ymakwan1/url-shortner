@@ -76,6 +76,7 @@ func CreateShortURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 func GetOriginalURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	if r.Method != http.MethodGet {
+		loggerError.Printf("Method Not Allowed: %d", http.StatusMethodNotAllowed)
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -85,6 +86,7 @@ func GetOriginalURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	longURL, ok := redis_cache.Get(key)
 
 	if ok == nil {
+		logger.Printf("Redirected successfully to %s from cache", longURL)
 		http.Redirect(w, r, longURL, http.StatusFound)
 		return
 	}
@@ -93,10 +95,11 @@ func GetOriginalURL(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	err := db.QueryRow("SELECT long_url FROM shortened_urls where key = $1", key).Scan(&originalURL)
 
 	if err != nil {
+		loggerError.Print("URL not found in database")
 		jsonhandling.Error(w, http.StatusNotFound, "URL not found")
 		return
 	}
-
+	logger.Printf("Redirected successfully to %s", longURL)
 	http.Redirect(w, r, originalURL, http.StatusFound)
 }
 
