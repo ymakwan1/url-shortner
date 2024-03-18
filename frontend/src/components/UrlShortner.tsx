@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-
+import '../animation.css';
 const UrlShortener: React.FC = () => {
   const [url, setUrl] = useState('');
   const [shortenedUrl, setShortenedUrl] = useState('');
@@ -8,6 +8,7 @@ const UrlShortener: React.FC = () => {
   const [showCopyButton, setShowCopyButton] = useState(true);
   const [showCopyNotification, setShowCopyNotification] = useState(false);
   const [copyButtonDisabled, setCopyButtonDisabled] = useState(false);
+  const [copyFieldDisabled, setCopyFieldDisabled] = useState(false);
 
   const handleShortenUrl = async () => {
     if (!url) {
@@ -33,21 +34,13 @@ const UrlShortener: React.FC = () => {
         setShortenedUrl(data.short_url);
         setIsLoading(false);
         setShowCopyButton(true);
-
-        // Hide copy button and shortened URL field after 20 seconds
-        setTimeout(() => {
-          setShortenedUrl('');
-          setShowCopyButton(false);
-        }, 20000);
       } else {
         setUrl('');
         setIsLoading(false);
-        console.error('Failed to shorten URL');
         setError('Failed to shorten URL. Please try again.');
         resetError();
       }
     } catch (error) {
-      console.error('Error occurred while shortening URL:', error);
       setError('An error occurred while shortening the URL. Please try again.');
       resetError();
     }
@@ -56,14 +49,13 @@ const UrlShortener: React.FC = () => {
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(shortenedUrl);
     setShowCopyNotification(true);
-    setCopyButtonDisabled(true);
-
-    // setTimeout(() => {
-    //   setShowCopyNotification(false);
-    // }, 2000);
+    
 
     setTimeout(() => {
+      setShowCopyButton(false);
+      setShortenedUrl('');
       setShowCopyNotification(false);
+      setCopyFieldDisabled(false);
       setCopyButtonDisabled(false);
       setUrl('');    
     }, 5000);
@@ -78,19 +70,19 @@ const UrlShortener: React.FC = () => {
   return (
     <div className="bg-gray-900 min-h-screen flex animate-gradient justify-center items-center">
       <div className="max-w-lg mx-auto p-6 animate-gradient rounded-md shadow-md">
-        <h1 className="text-3xl font-semibold mb-4 text-white">URL Shortener</h1>
+        <h1 className="text-2xl font-semibold mb-4 text-white">URL Shortener</h1>
         <div className="flex items-center mb-4">
           <input
             type="text"
             placeholder="Enter URL to shorten"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="flex-grow border rounded-md px-4 py-3 mr-2 w-full max-w-lg text-lg"
+            className="flex-grow border rounded-md px-6 py-2 mr-2 w-full max-w-lg text-lg"
           />
           <button
             onClick={handleShortenUrl}
             disabled={isLoading}
-            className="bg-blue-500 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-600"
+            className="bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600"
           >
             {isLoading ? 'Shortening...' : 'Shorten'}
           </button>
@@ -102,14 +94,14 @@ const UrlShortener: React.FC = () => {
               type="text"
               value={shortenedUrl}
               readOnly
-              className="flex-grow border rounded-md px-4 py-3 mr-2 w-full max-w-lg text-lg"
-              disabled={copyButtonDisabled}
+              className="flex-grow border rounded-md px-6 py-2 mr-2 w-full max-w-lg text-lg"
+              disabled={copyFieldDisabled}
             />
             {showCopyButton && (
               <button
                 onClick={handleCopyUrl}
                 disabled={copyButtonDisabled}
-                className="bg-blue-500 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-600"
+                className="bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600"
               >
                 Copy
               </button>
@@ -117,7 +109,7 @@ const UrlShortener: React.FC = () => {
           </div>
         )}
         {showCopyNotification && (
-          <div className="bg-green-500 text-white px-4 py-2 rounded-md">
+          <div className="bg-green-500 text-white px-2 py-1 rounded-md">
             URL copied to clipboard!
           </div>
         )}
